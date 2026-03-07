@@ -57,7 +57,7 @@ export class Task {
   reclamationRequired: boolean;
 
   @Column({ nullable: true })
-  reclamationDescription: string;
+  reclamationDescription?: string | null;
 
   @Column({ default: false })
   lockedForInstaller: boolean;
