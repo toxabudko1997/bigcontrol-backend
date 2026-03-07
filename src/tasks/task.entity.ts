@@ -54,13 +54,13 @@ export class Task {
   deadline: Date | null;
 
   @Column({ default: false })
-  reclamationRequired: boolean;
+reclamationRequired: boolean;
 
-  @Column({ nullable: true })
-  reclamationDescription?: string | null;
+@Column({ type: 'text', nullable: true })
+reclamationDescription?: string;
 
-  @Column({ default: false })
-  lockedForInstaller: boolean;
+@Column({ default: false })
+lockedForInstaller: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

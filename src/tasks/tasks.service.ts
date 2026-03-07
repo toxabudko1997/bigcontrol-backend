@@ -67,7 +67,6 @@ export class TasksService {
       status: 'free',
       createdBy: user,
       reclamationRequired: false,
-      reclamationDescription: null,
       lockedForInstaller: false,
     });
 
