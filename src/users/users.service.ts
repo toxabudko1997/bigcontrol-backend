@@ -68,6 +68,57 @@ export class UsersService implements OnModuleInit {
   findById(id: string) {
     return this.usersRepo.findOne({ where: { id } });
   }
+async findAll(): Promise<User[]> {
+  return this.usersRepo.find({ order: { createdAt: 'DESC' } });
+}
 
+async createUser(
+  creator: { role: UserRole },
+  data: { login: string; password: string; role: UserRole; name?: string; phone?: string },
+) {
+  if (creator.role === 'foreman') {
+    if (data.role !== 'installer') {
+      throw new ForbiddenException('Прораб может создавать только монтажников');
+    }
+  } else if (creator.role !== 'manager') {
+    throw new ForbiddenException('Нет прав создавать пользователей');
+  }
+
+  const exists = await this.usersRepo.findOne({ where: { login: data.login } });
+  if (exists) {
+    throw new BadRequestException('Пользователь с таким логином уже существует');
+  }
+
+  const passwordHash = await bcrypt.hash(data.password, 10);
+
+  const user = this.usersRepo.create({
+    login: data.login,
+    passwordHash,
+    role: data.role,
+    name: data.name,
+    phone: data.phone,
+    isBlocked: false,
+  });
+
+  return this.usersRepo.save(user);
+}
+
+async setBlocked(
+  actor: { role: UserRole },
+  userId: string,
+  isBlocked: boolean,
+) {
+  if (actor.role !== 'manager' && actor.role !== 'foreman') {
+    throw new ForbiddenException('Нет прав блокировать пользователей');
+  }
+
+  const user = await this.usersRepo.findOne({ where: { id: userId } });
+  if (!user) {
+    throw new NotFoundException('Пользователь не найден');
+  }
+
+  user.isBlocked = isBlocked;
+  return this.usersRepo.save(user);
+}
   // Здесь позже добавим методы: список пользователей, создание нового, блокировка и т.п.
 }
