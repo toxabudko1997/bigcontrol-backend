@@ -58,4 +58,28 @@ export class TasksController {
     const user = req.user as JwtUser;
     return this.tasksService.deleteTask(user, id);
   }
+    @Post(':id/photos')
+  async addPhoto(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: { url: string; type: 'work' | 'reclamation' },
+  ) {
+    const user = req.user as JwtUser;
+    return this.tasksService.addPhoto(user, id, body.url, body.type);
+  }
+    @Post(':id/reclamation')
+  async sendToReclamation(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: { description: string },
+  ) {
+    const user = req.user as JwtUser;
+    return this.tasksService.sendToReclamation(user, id, body.description);
+  }
+    @Post(':id/reclamation-complete')
+  async completeReclamation(@Req() req: any, @Param('id') id: string) {
+    const user = req.user as JwtUser;
+    return this.tasksService.completeReclamation(user, id);
+  }
+  
 }

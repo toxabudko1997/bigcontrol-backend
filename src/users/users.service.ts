@@ -127,4 +127,21 @@ async setBlocked(
   return this.usersRepo.save(user);
 }
   // Здесь позже добавим методы: список пользователей, создание нового, блокировка и т.п.
+  
+async deleteUser(actor: { role: UserRole }, userId: string) {
+  if (actor.role !== 'manager') {
+    throw new ForbiddenException('Удалять пользователей может только руководитель');
+  }
+
+  const user = await this.usersRepo.findOne({ where: { id: userId } });
+  if (!user) {
+    throw new NotFoundException('Пользователь не найден');
+  }
+
+  // при желании можно запретить удаление самого себя:
+  // if (user.id === (actorId)) { ... }
+
+  await this.usersRepo.remove(user);
+  return { success: true };
+} 
 }

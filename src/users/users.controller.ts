@@ -4,6 +4,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete, // ← добавить
   Param,
   UseGuards,
   Req,
@@ -71,5 +72,10 @@ export class UsersController {
       id,
       body.isBlocked,
     );
+  }
+  @Delete(':id')
+  async deleteUser(@Req() req: any, @Param('id') id: string) {
+    const user = req.user as JwtUser;
+    return this.usersService.deleteUser({ role: user.role }, id);
   }
 }

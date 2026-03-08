@@ -3,10 +3,12 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  OneToMany,          // ← добавить
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../users/user.entity';
+import { TaskPhoto } from './task-photo.entity'; // ← добавить
 
 export type TaskStatus =
   | 'free'
@@ -61,6 +63,9 @@ reclamationDescription?: string;
 
 @Column({ default: false })
 lockedForInstaller: boolean;
+
+@OneToMany(() => TaskPhoto, (photo) => photo.task, { eager: true })
+photos: TaskPhoto[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task, TaskStatus } from './task.entity';
-import { UsersService } from '../users/users.service';
+import { TaskPhoto, PhotoType } from './task-photo.entity';import { UsersService } from '../users/users.service';
 import { User, UserRole } from '../users/user.entity';
 
 interface JwtUser {
@@ -17,11 +17,13 @@ interface JwtUser {
 
 @Injectable()
 export class TasksService {
-  constructor(
-    @InjectRepository(Task)
-    private readonly tasksRepo: Repository<Task>,
-    private readonly usersService: UsersService,
-  ) {}
+constructor(
+  @InjectRepository(Task)
+  private readonly tasksRepo: Repository<Task>,
+  @InjectRepository(TaskPhoto)
+  private readonly photosRepo: Repository<TaskPhoto>,
+  private readonly usersService: UsersService,
+) {}
 
   async findForUser(user: JwtUser) {
     if (user.role === 'manager' || user.role === 'foreman') {
@@ -140,5 +142,80 @@ export class TasksService {
 
     await this.tasksRepo.remove(task);
     return { success: true };
+  }
+    async addPhoto(
+    user: JwtUser,
+    taskId: string,
+    url: string,
+    type: PhotoType,
+  ) {
+    const task = await this.tasksRepo.findOne({
+      where: { id: taskId },
+      relations: ['createdBy', 'executor'],
+    });
+    if (!task) {
+      throw new NotFoundException('Задача не найдена');
+    }
+
+    const uploader = (await this.usersService.findById(
+      user.userId,
+    )) as User;
+
+    const photo = this.photosRepo.create({
+      task,
+      uploader,
+      url,
+      type,
+    });
+    await this.photosRepo.save(photo);
+
+    // обновим задачу с новыми фото
+    const updatedTask = await this.tasksRepo.findOne({
+      where: { id: taskId },
+      relations: ['createdBy', 'executor'],
+    });
+    return updatedTask;
+  }
+    async sendToReclamation(
+    user: JwtUser,
+    taskId: string,
+    description: string,
+  ) {
+    if (user.role !== 'manager' && user.role !== 'foreman') {
+      throw new ForbiddenException('Только прораб или руководитель могут отправлять на рекламацию');
+    }
+
+    const task = await this.tasksRepo.findOne({
+      where: { id: taskId },
+    });
+    if (!task) throw new NotFoundException('Задача не найдена');
+
+    task.status = 'in_reclamation';
+    task.reclamationRequired = true;
+    task.reclamationDescription = description || 'Необходимо доработать';
+    task.lockedForInstaller = true;
+
+    return this.tasksRepo.save(task);
+  }
+    async completeReclamation(user: JwtUser, taskId: string) {
+    if (user.role !== 'installer') {
+      throw new ForbiddenException('Только монтажник может завершать рекламацию');
+    }
+
+    const task = await this.tasksRepo.findOne({
+      where: { id: taskId },
+      relations: ['executor'],
+    });
+    if (!task) throw new NotFoundException('Задача не найдена');
+
+    if (!task.executor || task.executor.id !== user.userId) {
+      throw new ForbiddenException('Это не ваша задача');
+    }
+
+    // Проверки по фото можно добавить здесь, когда фронт будет слать инфу о фото на сервер
+    task.status = 'in_review';
+    task.lockedForInstaller = false;
+
+    return this.tasksRepo.save(task);
   }
 }
